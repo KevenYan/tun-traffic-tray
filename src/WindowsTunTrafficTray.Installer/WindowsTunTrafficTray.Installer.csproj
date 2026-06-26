@@ -7,6 +7,9 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>WindowsTunTrafficTraySetup</AssemblyName>
     <RootNamespace>WindowsTunTrafficTray.Installer</RootNamespace>
+    <Version>0.1.0</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup Condition="Exists('Resources\payload.zip')">
