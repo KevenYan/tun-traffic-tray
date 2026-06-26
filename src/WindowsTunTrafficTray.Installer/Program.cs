@@ -10,15 +10,17 @@ internal static class Program
 {
     private const string AppName = "Windows TUN Traffic Tray";
     private const string AppExe = "WindowsTunTrafficTray.exe";
-    private const string AppVersion = "0.1.1";
+    private const string AppVersion = "0.1.2";
     private const string RegistryKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\WindowsTunTrafficTray";
+    private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
+    private const string RunValueName = "WindowsTunTrafficTray";
 
     [STAThread]
     private static void Main(string[] args)
     {
+        var silent = args.Any(arg => arg.Equals("--silent", StringComparison.OrdinalIgnoreCase));
         try
         {
-            var silent = args.Any(arg => arg.Equals("--silent", StringComparison.OrdinalIgnoreCase));
             if (args.Any(arg => arg.Equals("--uninstall", StringComparison.OrdinalIgnoreCase)))
             {
                 Uninstall(silent);
@@ -30,13 +32,32 @@ internal static class Program
         }
         catch (Exception ex)
         {
+            if (silent)
+            {
+                File.WriteAllText(Path.Combine(Path.GetTempPath(), "WindowsTunTrafficTraySetup.log"), ex.ToString());
+                Environment.Exit(1);
+            }
+
             MessageBox.Show(ex.Message, AppName, MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 
     private static void Install(bool silent, bool launch)
     {
-        var installDir = GetInstallDir();
+        var options = silent
+            ? new InstallerOptions(GetDefaultInstallDir(), AutoStart: false)
+            : GetInstallerOptions();
+        if (options is null)
+        {
+            return;
+        }
+
+        var installDir = options.InstallDir;
+        if (string.IsNullOrWhiteSpace(installDir))
+        {
+            throw new InvalidOperationException("\u5b89\u88c5\u4f4d\u7f6e\u4e0d\u80fd\u4e3a\u7a7a\u3002");
+        }
+
         Directory.CreateDirectory(installDir);
 
         StopApp();
@@ -51,6 +72,7 @@ internal static class Program
         var appPath = Path.Combine(installDir, AppExe);
         CreateShortcut(GetStartMenuShortcutPath(), appPath);
         CreateShortcut(GetDesktopShortcutPath(), appPath);
+        SetAutoStart(options.AutoStart, appPath);
         RegisterUninstall(installDir);
 
         if (launch)
@@ -60,23 +82,24 @@ internal static class Program
 
         if (!silent)
         {
-            MessageBox.Show("Installed successfully.", AppName, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("\u5b89\u88c5\u6210\u529f\u3002", AppName, MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 
     private static void Uninstall(bool silent)
     {
         StopApp();
+        var installDir = GetRegisteredInstallDir() ?? GetDefaultInstallDir();
 
         DeleteFileIfExists(GetStartMenuShortcutPath());
         DeleteFileIfExists(GetDesktopShortcutPath());
+        SetAutoStart(false, "");
         Registry.CurrentUser.DeleteSubKeyTree(RegistryKeyPath, false);
 
-        var installDir = GetInstallDir();
         ScheduleSelfDelete(installDir);
         if (!silent)
         {
-            MessageBox.Show("Uninstalled successfully.", AppName, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("\u5378\u8f7d\u6210\u529f\u3002", AppName, MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
     }
 
@@ -144,9 +167,36 @@ internal static class Program
         });
     }
 
-    private static string GetInstallDir()
+    private static InstallerOptions? GetInstallerOptions()
+    {
+        using var form = new InstallerOptionsForm(GetRegisteredInstallDir() ?? GetDefaultInstallDir());
+        return form.ShowDialog() == DialogResult.OK
+            ? new InstallerOptions(form.InstallDir, form.AutoStart)
+            : null;
+    }
+
+    private static void SetAutoStart(bool enabled, string appPath)
+    {
+        using var key = Registry.CurrentUser.CreateSubKey(RunKeyPath);
+        if (enabled)
+        {
+            key.SetValue(RunValueName, $"\"{appPath}\"");
+        }
+        else
+        {
+            key.DeleteValue(RunValueName, false);
+        }
+    }
+
+    private static string GetDefaultInstallDir()
     {
         return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "WindowsTunTrafficTray");
+    }
+
+    private static string? GetRegisteredInstallDir()
+    {
+        using var key = Registry.CurrentUser.OpenSubKey(RegistryKeyPath);
+        return key?.GetValue("InstallLocation") as string;
     }
 
     private static string GetStartMenuShortcutPath()
@@ -167,3 +217,5 @@ internal static class Program
         }
     }
 }
+
+public sealed record InstallerOptions(string InstallDir, bool AutoStart);

@@ -20,7 +20,7 @@ public partial class SettingsWindow : Window
 
         if (!Uri.TryCreate(Settings.ControllerUrl, UriKind.Absolute, out _))
         {
-            System.Windows.MessageBox.Show(this, "Controller URL is invalid.", "Settings", MessageBoxButton.OK, MessageBoxImage.Warning);
+            System.Windows.MessageBox.Show(this, "\u63a7\u5236\u5668\u5730\u5740\u65e0\u6548\u3002", "\u8bbe\u7f6e", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 

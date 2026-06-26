@@ -10,13 +10,26 @@ public sealed class TrafficAggregator
 
     public long TotalDownload => _counters.Values.Sum(counter => counter.Download);
     public long TotalUpload => _counters.Values.Sum(counter => counter.Upload);
+    public long ProxyDownload => _counters.Values.Where(counter => !IsDirect(counter.Key)).Sum(counter => counter.Download);
+    public long ProxyUpload => _counters.Values.Where(counter => !IsDirect(counter.Key)).Sum(counter => counter.Upload);
+    public long DirectDownload => _counters.Values.Where(counter => IsDirect(counter.Key)).Sum(counter => counter.Download);
+    public long DirectUpload => _counters.Values.Where(counter => IsDirect(counter.Key)).Sum(counter => counter.Upload);
+    public double TotalDownloadRate => _counters.Values.Sum(counter => counter.DownloadRate);
+    public double TotalUploadRate => _counters.Values.Sum(counter => counter.UploadRate);
 
-    public void Apply(IReadOnlyList<MihomoConnection> connections)
+    public UsageDelta Apply(IReadOnlyList<MihomoConnection> connections)
     {
         var now = DateTimeOffset.UtcNow;
         var seconds = Math.Max(0.1, (now - _lastPoll).TotalSeconds);
         _lastPoll = now;
         var seenIds = new HashSet<string>();
+        long allDownload = 0;
+        long allUpload = 0;
+        long proxyDownload = 0;
+        long proxyUpload = 0;
+        long directDownload = 0;
+        long directUpload = 0;
+        var appDeltas = new Dictionary<(string Process, string ProcessPath), AppDeltaAccumulator>();
 
         foreach (var counter in _counters.Values)
         {
@@ -60,12 +73,54 @@ public sealed class TrafficAggregator
             counter.Upload += uploadDelta;
             counter.DownloadRate = downloadDelta / seconds;
             counter.UploadRate = uploadDelta / seconds;
+
+            allDownload += downloadDelta;
+            allUpload += uploadDelta;
+            if (IsDirect(key))
+            {
+                directDownload += downloadDelta;
+                directUpload += uploadDelta;
+            }
+            else
+            {
+                proxyDownload += downloadDelta;
+                proxyUpload += uploadDelta;
+            }
+
+            var appKey = (Process: NormalizeProcessName(key.Process), key.ProcessPath);
+            if (!appDeltas.TryGetValue(appKey, out var appDelta))
+            {
+                appDelta = new AppDeltaAccumulator(appKey.Process, appKey.ProcessPath);
+                appDeltas[appKey] = appDelta;
+            }
+
+            appDelta.AllDownload += downloadDelta;
+            appDelta.AllUpload += uploadDelta;
+            if (IsDirect(key))
+            {
+                appDelta.DirectDownload += downloadDelta;
+                appDelta.DirectUpload += uploadDelta;
+            }
+            else
+            {
+                appDelta.ProxyDownload += downloadDelta;
+                appDelta.ProxyUpload += uploadDelta;
+            }
         }
 
         foreach (var id in _lastSamples.Keys.Where(id => !seenIds.Contains(id)).ToList())
         {
             _lastSamples.Remove(id);
         }
+
+        return new UsageDelta(
+            allDownload,
+            allUpload,
+            proxyDownload,
+            proxyUpload,
+            directDownload,
+            directUpload,
+            appDeltas.Values.Select(item => item.ToDelta()).ToList());
     }
 
     public void Reset()
@@ -139,10 +194,20 @@ public sealed class TrafficAggregator
     {
         return filter switch
         {
-            "Proxy" => !key.Chain.Equals("DIRECT", StringComparison.OrdinalIgnoreCase),
-            "Direct" => key.Chain.Equals("DIRECT", StringComparison.OrdinalIgnoreCase),
+            "Proxy" => !IsDirect(key),
+            "Direct" => IsDirect(key),
             _ => true
         };
+    }
+
+    private static bool IsDirect(UsageKey key)
+    {
+        return key.Chain.Equals("DIRECT", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizeProcessName(string process)
+    {
+        return string.IsNullOrWhiteSpace(process) ? "Unknown process" : process;
     }
 
     private static string BuildProcessChain(IEnumerable<string> chains)
@@ -239,6 +304,37 @@ public sealed record UsageKey(string Process, string ProcessPath, string Host, s
 }
 
 public sealed record ConnectionSample(long Download, long Upload);
+
+public sealed class AppDeltaAccumulator
+{
+    public AppDeltaAccumulator(string process, string processPath)
+    {
+        Process = process;
+        ProcessPath = processPath;
+    }
+
+    public string Process { get; }
+    public string ProcessPath { get; }
+    public long AllDownload { get; set; }
+    public long AllUpload { get; set; }
+    public long ProxyDownload { get; set; }
+    public long ProxyUpload { get; set; }
+    public long DirectDownload { get; set; }
+    public long DirectUpload { get; set; }
+
+    public ApplicationUsageDelta ToDelta()
+    {
+        return new ApplicationUsageDelta(
+            Process,
+            ProcessPath,
+            AllDownload,
+            AllUpload,
+            ProxyDownload,
+            ProxyUpload,
+            DirectDownload,
+            DirectUpload);
+    }
+}
 
 public enum UsageSortColumn
 {

@@ -6,7 +6,7 @@ Windows TUN Traffic Tray 是一个 Windows 托盘工具，用来统计 Clash Ver
 
 ## 当前版本
 
-当前版本：`v0.1.1`
+当前版本：`v0.1.2`
 
 ## 功能
 
@@ -16,8 +16,11 @@ Windows TUN Traffic Tray 是一个 Windows 托盘工具，用来统计 Clash Ver
 - 可展开查看每个进程访问的域名。
 - 显示链路，例如 `Proxy`、`DIRECT` 或具体节点。
 - 每个进程下按代理方式/链路单独统计用量。
+- 顶部按 All / Proxy / DIRECT 分别显示当前会话用量。
 - 支持 `All`、`Proxy`、`DIRECT` 过滤。
 - 点击表格标题可以排序。
+- 按日期保存每日 All / Proxy / DIRECT 用量记录。
+- 安装器支持选择安装目录和开机自启。
 - 支持重置当前会话统计。
 - 本地保存 controller 地址和 secret，不提交到 GitHub。
 - 提供可安装程序，安装后有桌面快捷方式、开始菜单快捷方式和卸载入口。
@@ -26,7 +29,7 @@ Windows TUN Traffic Tray 是一个 Windows 托盘工具，用来统计 Clash Ver
 
 - Windows 10/11
 - Clash Verge / Mihomo 已开启 external controller
-- 如果只使用安装包，不需要提前安装 .NET
+- 使用轻量安装包前，需要安装 .NET 10 Desktop Runtime
 - 如果要自己编译，需要 .NET 10 SDK
 
 默认控制接口：
@@ -63,6 +66,8 @@ WindowsTunTrafficTraySetup.exe
 - 开始菜单快捷方式
 - Windows 设置里的卸载入口
 
+安装时可以选择安装目录，也可以勾选开机自启。
+
 ## 本地运行
 
 ```powershell
@@ -87,7 +92,7 @@ powershell -ExecutionPolicy Bypass -File .\package-installer.ps1
 artifacts\WindowsTunTrafficTraySetup.exe
 ```
 
-当前安装包是自包含版本，所以体积较大，但用户电脑不需要提前安装 .NET。
+当前安装包使用折中方案：安装器自带运行时，保证可以双击安装；安装后的主程序是框架依赖版本，电脑需要安装 .NET 10 Desktop Runtime。这样比完整自包含安装包更小。
 
 ## 发布 Release
 

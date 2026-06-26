@@ -18,11 +18,8 @@ New-Item -ItemType Directory -Path $artifacts, $publishDir, $installerResources,
 
 & $dotnet publish (Join-Path $root "src\WindowsTunTrafficTray\WindowsTunTrafficTray.csproj") `
     --configuration Release `
-    --runtime win-x64 `
-    --self-contained true `
+    --self-contained false `
     -p:PublishSingleFile=true `
-    -p:IncludeNativeLibrariesForSelfExtract=true `
-    -p:EnableCompressionInSingleFile=true `
     --output $publishDir
 
 Compress-Archive -Path (Join-Path $publishDir "*") -DestinationPath $payloadZip -Force

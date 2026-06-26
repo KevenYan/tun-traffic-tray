@@ -16,10 +16,15 @@ public partial class App : System.Windows.Application
         _mainWindow = new MainWindow();
         _mainWindow.Hide();
 
+        var processPath = Environment.ProcessPath;
+        var appIcon = !string.IsNullOrWhiteSpace(processPath)
+            ? Icon.ExtractAssociatedIcon(processPath)
+            : null;
+
         _notifyIcon = new Forms.NotifyIcon
         {
-            Icon = SystemIcons.Application,
-            Text = "TUN Traffic",
+            Icon = appIcon ?? SystemIcons.Application,
+            Text = "TUN \u6d41\u91cf\u76d1\u63a7",
             Visible = true,
             ContextMenuStrip = BuildMenu()
         };
@@ -35,11 +40,11 @@ public partial class App : System.Windows.Application
     private Forms.ContextMenuStrip BuildMenu()
     {
         var menu = new Forms.ContextMenuStrip();
-        menu.Items.Add("Open", null, (_, _) => ShowMainWindow());
-        menu.Items.Add("Refresh", null, (_, _) => _mainWindow?.RefreshNow());
-        menu.Items.Add("Settings", null, (_, _) => _mainWindow?.OpenSettings());
+        menu.Items.Add("\u6253\u5f00", null, (_, _) => ShowMainWindow());
+        menu.Items.Add("\u5237\u65b0", null, (_, _) => _mainWindow?.RefreshNow());
+        menu.Items.Add("\u8bbe\u7f6e", null, (_, _) => _mainWindow?.OpenSettings());
         menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add("Exit", null, (_, _) => Shutdown());
+        menu.Items.Add("\u9000\u51fa", null, (_, _) => Shutdown());
         return menu;
     }
 
