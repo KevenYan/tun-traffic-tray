@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>WindowsTunTrafficTraySetup</AssemblyName>
+    <RootNamespace>WindowsTunTrafficTray.Installer</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup Condition="Exists('Resources\payload.zip')">
+    <EmbeddedResource Include="Resources\payload.zip" LogicalName="Payload.zip" />
+  </ItemGroup>
+</Project>

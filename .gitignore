@@ -1,0 +1,14 @@
+bin/
+obj/
+.vs/
+.vscode/
+*.user
+*.suo
+*.tmp
+*.log
+publish/
+artifacts/
+src/WindowsTunTrafficTray.Installer/Resources/payload.zip
+settings.json
+*.pfx
+*.snk
