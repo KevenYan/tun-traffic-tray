@@ -6,7 +6,7 @@ Windows TUN Traffic Tray 是一个 Windows 托盘工具，用来统计 Clash Ver
 
 ## 当前版本
 
-当前版本：`v0.1.0`
+当前版本：`v0.1.1`
 
 ## 功能
 
@@ -15,7 +15,9 @@ Windows TUN Traffic Tray 是一个 Windows 托盘工具，用来统计 Clash Ver
 - 按进程汇总上传量、下载量、上传速度、下载速度。
 - 可展开查看每个进程访问的域名。
 - 显示链路，例如 `Proxy`、`DIRECT` 或具体节点。
+- 每个进程下按代理方式/链路单独统计用量。
 - 支持 `All`、`Proxy`、`DIRECT` 过滤。
+- 点击表格标题可以排序。
 - 支持重置当前会话统计。
 - 本地保存 controller 地址和 secret，不提交到 GitHub。
 - 提供可安装程序，安装后有桌面快捷方式、开始菜单快捷方式和卸载入口。

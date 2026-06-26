@@ -15,6 +15,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private MihomoClient _client;
     private string _selectedFilter = "All";
     private string _statusText = "Starting...";
+    private UsageSortColumn _sortColumn = UsageSortColumn.Download;
+    private ListSortDirection _sortDirection = ListSortDirection.Descending;
 
     public MainWindow()
     {
@@ -33,7 +35,15 @@ public partial class MainWindow : Window, INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public IReadOnlyList<UsageNode> Rows => _aggregator.BuildRows(SelectedFilter);
+    public IReadOnlyList<UsageNode> Rows => _aggregator.BuildRows(SelectedFilter, _sortColumn, _sortDirection);
+
+    public string NameHeader => BuildHeader("Process / Host", UsageSortColumn.Name);
+    public string ChainHeader => BuildHeader("Proxy / Chain", UsageSortColumn.Chain);
+    public string DownloadHeader => BuildHeader("Download", UsageSortColumn.Download);
+    public string UploadHeader => BuildHeader("Upload", UsageSortColumn.Upload);
+    public string DownloadRateHeader => BuildHeader("Down Speed", UsageSortColumn.DownloadRate);
+    public string UploadRateHeader => BuildHeader("Up Speed", UsageSortColumn.UploadRate);
+    public string PathHeader => BuildHeader("Path", UsageSortColumn.Path);
 
     public string SelectedFilter
     {
@@ -127,6 +137,59 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     }
 
     private void Settings_Click(object sender, RoutedEventArgs e) => OpenSettings();
+
+    private void SortName_Click(object sender, RoutedEventArgs e) => SortBy(UsageSortColumn.Name);
+
+    private void SortChain_Click(object sender, RoutedEventArgs e) => SortBy(UsageSortColumn.Chain);
+
+    private void SortDownload_Click(object sender, RoutedEventArgs e) => SortBy(UsageSortColumn.Download);
+
+    private void SortUpload_Click(object sender, RoutedEventArgs e) => SortBy(UsageSortColumn.Upload);
+
+    private void SortDownloadRate_Click(object sender, RoutedEventArgs e) => SortBy(UsageSortColumn.DownloadRate);
+
+    private void SortUploadRate_Click(object sender, RoutedEventArgs e) => SortBy(UsageSortColumn.UploadRate);
+
+    private void SortPath_Click(object sender, RoutedEventArgs e) => SortBy(UsageSortColumn.Path);
+
+    private void SortBy(UsageSortColumn column)
+    {
+        if (_sortColumn == column)
+        {
+            _sortDirection = _sortDirection == ListSortDirection.Ascending
+                ? ListSortDirection.Descending
+                : ListSortDirection.Ascending;
+        }
+        else
+        {
+            _sortColumn = column;
+            _sortDirection = IsTextColumn(column) ? ListSortDirection.Ascending : ListSortDirection.Descending;
+        }
+
+        OnPropertyChanged(nameof(Rows));
+        OnPropertyChanged(nameof(NameHeader));
+        OnPropertyChanged(nameof(ChainHeader));
+        OnPropertyChanged(nameof(DownloadHeader));
+        OnPropertyChanged(nameof(UploadHeader));
+        OnPropertyChanged(nameof(DownloadRateHeader));
+        OnPropertyChanged(nameof(UploadRateHeader));
+        OnPropertyChanged(nameof(PathHeader));
+    }
+
+    private string BuildHeader(string title, UsageSortColumn column)
+    {
+        if (_sortColumn != column)
+        {
+            return title;
+        }
+
+        return _sortDirection == ListSortDirection.Ascending ? $"{title} ↑" : $"{title} ↓";
+    }
+
+    private static bool IsTextColumn(UsageSortColumn column)
+    {
+        return column is UsageSortColumn.Name or UsageSortColumn.Chain or UsageSortColumn.Path;
+    }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {

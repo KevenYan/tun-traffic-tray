@@ -10,6 +10,7 @@ internal static class Program
 {
     private const string AppName = "Windows TUN Traffic Tray";
     private const string AppExe = "WindowsTunTrafficTray.exe";
+    private const string AppVersion = "0.1.1";
     private const string RegistryKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\WindowsTunTrafficTray";
 
     [STAThread]
@@ -124,7 +125,7 @@ internal static class Program
         var appPath = Path.Combine(installDir, AppExe);
 
         key.SetValue("DisplayName", AppName);
-        key.SetValue("DisplayVersion", "0.1.0");
+        key.SetValue("DisplayVersion", AppVersion);
         key.SetValue("Publisher", "Local");
         key.SetValue("InstallLocation", installDir);
         key.SetValue("DisplayIcon", appPath);

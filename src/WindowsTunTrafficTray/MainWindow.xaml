@@ -4,16 +4,25 @@
         xmlns:local="clr-namespace:WindowsTunTrafficTray"
         Title="TUN Traffic" Width="1080" Height="680" MinWidth="820" MinHeight="520">
     <Window.Resources>
+        <Style x:Key="HeaderButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+
         <HierarchicalDataTemplate DataType="{x:Type local:UsageNode}" ItemsSource="{Binding Children}">
             <Grid Margin="0,2">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="260" />
-                    <ColumnDefinition Width="140" />
+                    <ColumnDefinition Width="220" />
                     <ColumnDefinition Width="120" />
                     <ColumnDefinition Width="120" />
                     <ColumnDefinition Width="120" />
                     <ColumnDefinition Width="120" />
-                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="360" />
                 </Grid.ColumnDefinitions>
                 <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
                 <TextBlock Grid.Column="1" Text="{Binding Chain}" TextTrimming="CharacterEllipsis" />
@@ -53,27 +62,33 @@
             <Button Grid.Column="4" Content="Settings" Padding="14,7" Click="Settings_Click" />
         </Grid>
 
-        <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="260" />
-                <ColumnDefinition Width="140" />
-                <ColumnDefinition Width="120" />
-                <ColumnDefinition Width="120" />
-                <ColumnDefinition Width="120" />
-                <ColumnDefinition Width="120" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="Process / Host" FontWeight="SemiBold" />
-            <TextBlock Grid.Column="1" Text="Chain" FontWeight="SemiBold" />
-            <TextBlock Grid.Column="2" Text="Download" FontWeight="SemiBold" TextAlignment="Right" />
-            <TextBlock Grid.Column="3" Text="Upload" FontWeight="SemiBold" TextAlignment="Right" />
-            <TextBlock Grid.Column="4" Text="Down Speed" FontWeight="SemiBold" TextAlignment="Right" />
-            <TextBlock Grid.Column="5" Text="Up Speed" FontWeight="SemiBold" TextAlignment="Right" />
-            <TextBlock Grid.Column="6" Text="Path" FontWeight="SemiBold" />
-        </Grid>
-
         <Border BorderBrush="#DDD" BorderThickness="1">
-            <TreeView ItemsSource="{Binding Rows}" Padding="6" />
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <DockPanel Width="1330">
+                    <Grid DockPanel.Dock="Top" Margin="6,6,6,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="260" />
+                            <ColumnDefinition Width="220" />
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="360" />
+                        </Grid.ColumnDefinitions>
+                        <Button Style="{StaticResource HeaderButtonStyle}" Content="{Binding NameHeader}" Click="SortName_Click" />
+                        <Button Grid.Column="1" Style="{StaticResource HeaderButtonStyle}" Content="{Binding ChainHeader}" Click="SortChain_Click" />
+                        <Button Grid.Column="2" Style="{StaticResource HeaderButtonStyle}" Content="{Binding DownloadHeader}" Click="SortDownload_Click" HorizontalContentAlignment="Right" />
+                        <Button Grid.Column="3" Style="{StaticResource HeaderButtonStyle}" Content="{Binding UploadHeader}" Click="SortUpload_Click" HorizontalContentAlignment="Right" />
+                        <Button Grid.Column="4" Style="{StaticResource HeaderButtonStyle}" Content="{Binding DownloadRateHeader}" Click="SortDownloadRate_Click" HorizontalContentAlignment="Right" />
+                        <Button Grid.Column="5" Style="{StaticResource HeaderButtonStyle}" Content="{Binding UploadRateHeader}" Click="SortUploadRate_Click" HorizontalContentAlignment="Right" />
+                        <Button Grid.Column="6" Style="{StaticResource HeaderButtonStyle}" Content="{Binding PathHeader}" Click="SortPath_Click" />
+                    </Grid>
+
+                    <TreeView ItemsSource="{Binding Rows}" Padding="6,0,6,6"
+                              ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                              ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                </DockPanel>
+            </ScrollViewer>
         </Border>
     </DockPanel>
 </Window>

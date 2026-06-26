@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace WindowsTunTrafficTray;
 
 public sealed class TrafficAggregator
@@ -73,13 +75,13 @@ public sealed class TrafficAggregator
         _lastPoll = DateTimeOffset.UtcNow;
     }
 
-    public IReadOnlyList<UsageNode> BuildRows(string filter)
+    public IReadOnlyList<UsageNode> BuildRows(string filter, UsageSortColumn sortColumn, ListSortDirection sortDirection)
     {
         var counters = _counters.Values
             .Where(counter => MatchesFilter(counter.Key, filter))
             .ToList();
 
-        return counters
+        var rows = counters
             .GroupBy(counter => new { counter.Key.Process, counter.Key.ProcessPath })
             .Select(group =>
             {
@@ -96,29 +98,48 @@ public sealed class TrafficAggregator
                 };
 
                 node.Children.AddRange(group
-                    .OrderByDescending(item => item.Download + item.Upload)
-                    .Select(item => new UsageNode
+                    .GroupBy(item => item.Key.Chain)
+                    .Select(chainGroup =>
                     {
-                        Name = item.Key.Host,
-                        Path = item.Key.Remote,
-                        Chain = item.Key.Chain,
-                        Download = item.Download,
-                        Upload = item.Upload,
-                        DownloadRate = item.DownloadRate,
-                        UploadRate = item.UploadRate
+                        var chainName = string.IsNullOrWhiteSpace(chainGroup.Key) ? "Unknown chain" : chainGroup.Key;
+                        var chainNode = new UsageNode
+                        {
+                            Name = chainName,
+                            Chain = chainName,
+                            Download = chainGroup.Sum(item => item.Download),
+                            Upload = chainGroup.Sum(item => item.Upload),
+                            DownloadRate = chainGroup.Sum(item => item.DownloadRate),
+                            UploadRate = chainGroup.Sum(item => item.UploadRate)
+                        };
+
+                        chainNode.Children.AddRange(SortNodes(chainGroup
+                            .Select(item => new UsageNode
+                            {
+                                Name = item.Key.Host,
+                                Path = item.Key.Remote,
+                                Chain = item.Key.Chain,
+                                Download = item.Download,
+                                Upload = item.Upload,
+                                DownloadRate = item.DownloadRate,
+                                UploadRate = item.UploadRate
+                            }), sortColumn, sortDirection));
+
+                        return chainNode;
                     }));
 
+                SortChildren(node, sortColumn, sortDirection);
                 return node;
             })
-            .OrderByDescending(node => node.Download + node.Upload)
             .ToList();
+
+        return SortNodes(rows, sortColumn, sortDirection);
     }
 
     private static bool MatchesFilter(UsageKey key, string filter)
     {
         return filter switch
         {
-            "Proxy" => key.Chain.Contains("Proxy", StringComparison.OrdinalIgnoreCase),
+            "Proxy" => !key.Chain.Equals("DIRECT", StringComparison.OrdinalIgnoreCase),
             "Direct" => key.Chain.Equals("DIRECT", StringComparison.OrdinalIgnoreCase),
             _ => true
         };
@@ -128,6 +149,50 @@ public sealed class TrafficAggregator
     {
         var unique = chains.Where(chain => !string.IsNullOrWhiteSpace(chain)).Distinct().Take(3).ToList();
         return unique.Count == 0 ? "" : string.Join(", ", unique);
+    }
+
+    private static void SortChildren(UsageNode node, UsageSortColumn sortColumn, ListSortDirection sortDirection)
+    {
+        var sorted = SortNodes(node.Children, sortColumn, sortDirection).ToList();
+        node.Children.Clear();
+        node.Children.AddRange(sorted);
+    }
+
+    private static IReadOnlyList<UsageNode> SortNodes(IEnumerable<UsageNode> nodes, UsageSortColumn sortColumn, ListSortDirection sortDirection)
+    {
+        IOrderedEnumerable<UsageNode> ordered = sortColumn switch
+        {
+            UsageSortColumn.Name => SortText(nodes, item => item.Name, sortDirection),
+            UsageSortColumn.Chain => SortText(nodes, item => item.Chain, sortDirection),
+            UsageSortColumn.Download => SortNumber(nodes, item => item.Download, sortDirection),
+            UsageSortColumn.Upload => SortNumber(nodes, item => item.Upload, sortDirection),
+            UsageSortColumn.DownloadRate => SortNumber(nodes, item => item.DownloadRate, sortDirection),
+            UsageSortColumn.UploadRate => SortNumber(nodes, item => item.UploadRate, sortDirection),
+            UsageSortColumn.Path => SortText(nodes, item => item.Path, sortDirection),
+            _ => SortNumber(nodes, item => item.Download + item.Upload, ListSortDirection.Descending)
+        };
+
+        return ordered.ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    private static IOrderedEnumerable<UsageNode> SortText(
+        IEnumerable<UsageNode> nodes,
+        Func<UsageNode, string> selector,
+        ListSortDirection direction)
+    {
+        return direction == ListSortDirection.Ascending
+            ? nodes.OrderBy(selector, StringComparer.OrdinalIgnoreCase)
+            : nodes.OrderByDescending(selector, StringComparer.OrdinalIgnoreCase);
+    }
+
+    private static IOrderedEnumerable<UsageNode> SortNumber(
+        IEnumerable<UsageNode> nodes,
+        Func<UsageNode, double> selector,
+        ListSortDirection direction)
+    {
+        return direction == ListSortDirection.Ascending
+            ? nodes.OrderBy(selector)
+            : nodes.OrderByDescending(selector);
     }
 }
 
@@ -159,8 +224,29 @@ public sealed record UsageKey(string Process, string ProcessPath, string Host, s
             metadata.ProcessPath,
             string.IsNullOrWhiteSpace(host) ? "Unknown host" : host,
             metadata.RemoteDestination,
-            connection.Chains.LastOrDefault() ?? "");
+            BuildRoute(connection.Chains));
+    }
+
+    private static string BuildRoute(IReadOnlyList<string> chains)
+    {
+        if (chains.Count == 0)
+        {
+            return "";
+        }
+
+        return string.Join(" / ", chains.AsEnumerable().Reverse());
     }
 }
 
 public sealed record ConnectionSample(long Download, long Upload);
+
+public enum UsageSortColumn
+{
+    Name,
+    Chain,
+    Download,
+    Upload,
+    DownloadRate,
+    UploadRate,
+    Path
+}
